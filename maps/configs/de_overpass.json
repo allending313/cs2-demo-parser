@@ -1,0 +1,10 @@
+{
+	"name": "de_overpass",
+	"displayName": "Overpass",
+	"posX": -4831,
+	"posY": 1781,
+	"scale": 5.2,
+	"radarFile": "de_overpass.png",
+	"radarWidth": 0,
+	"radarHeight": 0
+}

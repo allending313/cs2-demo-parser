@@ -1,0 +1,10 @@
+{
+	"name": "de_ancient",
+	"displayName": "Ancient",
+	"posX": -2953,
+	"posY": 2164,
+	"scale": 5,
+	"radarFile": "de_ancient.png",
+	"radarWidth": 0,
+	"radarHeight": 0
+}

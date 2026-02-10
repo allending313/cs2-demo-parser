@@ -1,0 +1,10 @@
+{
+	"name": "de_inferno",
+	"displayName": "Inferno",
+	"posX": -2087,
+	"posY": 3870,
+	"scale": 4.9,
+	"radarFile": "de_inferno.png",
+	"radarWidth": 0,
+	"radarHeight": 0
+}
