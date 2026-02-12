@@ -17,7 +17,7 @@ func main() {
 	srv, err := server.New(server.Config{
 		UploadDir: envOrDefault("UPLOAD_DIR", "./data/uploads"),
 		MatchDir:  envOrDefault("MATCH_DIR", "./data/matches"),
-		MapsDir:   envOrDefault("MAPS_DIR", "./maps"),
+		MapsDir:   envOrDefault("MAPS_DIR", "./assets/maps"),
 		WebDir:    envOrDefault("WEB_DIR", "./web/dist"),
 	}, logger)
 	if err != nil {

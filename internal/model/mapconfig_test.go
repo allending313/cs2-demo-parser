@@ -6,7 +6,7 @@ import (
 )
 
 func TestLoadMapConfigs(t *testing.T) {
-	configsDir := "../../maps/configs"
+	configsDir := "../../assets/maps/configs"
 
 	configs, err := LoadMapConfigs(configsDir)
 	if err != nil {

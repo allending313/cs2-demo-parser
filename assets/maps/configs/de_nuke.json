@@ -1,0 +1,11 @@
+{
+	"name": "de_nuke",
+	"displayName": "Nuke",
+	"posX": -3453,
+	"posY": 2887,
+	"scale": 7,
+	"radarFile": "de_ancient.png",
+	"lowerRadarFile": "de_ancient_lower.png",
+	"radarWidth": 0,
+	"radarHeight": 0
+}
