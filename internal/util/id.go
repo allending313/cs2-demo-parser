@@ -6,7 +6,7 @@ import (
 )
 
 func GenerateID() string {
-	b := make([]byte, 4)
+	b := make([]byte, 2)
 	rand.Read(b)
 	return hex.EncodeToString(b)
 }
