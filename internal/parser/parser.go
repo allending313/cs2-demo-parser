@@ -14,7 +14,10 @@ import (
 	models "github.com/allending313/cs2-demo-parser/internal/model"
 )
 
-const snapshotsPerSecond = 5
+const (
+	snapshotsPerSecond     = 5
+	postRoundBufferSeconds = 3.0
+)
 
 // ProgressFunc is called periodically with a value between 0 and 1.
 type ProgressFunc func(progress float32)
@@ -36,12 +39,19 @@ func ParseDemo(filePath, matchID string, onProgress ProgressFunc) (*models.Match
 		match.Map = srvInfo.GetMapName()
 	})
 
+	// Start capturing after freeze time, not at round start.
+	// RoundStart still fires during freeze time
+	// We only use it to finalize any lingering post-round buffer from the previous round.
 	p.RegisterEventHandler(func(e events.RoundStart) {
-		collector.onRoundStart(p)
+		collector.finalizePendingRound()
+	})
+
+	p.RegisterEventHandler(func(e events.RoundFreezetimeEnd) {
+		collector.onFreezetimeEnd(p)
 	})
 
 	p.RegisterEventHandler(func(e events.RoundEnd) {
-		collector.onRoundEnd(e)
+		collector.onRoundEnd(e, p)
 	})
 
 	p.RegisterEventHandler(func(e events.Kill) {
@@ -87,12 +97,12 @@ func ParseDemo(filePath, matchID string, onProgress ProgressFunc) (*models.Match
 		}
 	}
 
-	// Flush any in-progress round (in case demo ends mid-round)
+	collector.finalizePendingRound()
 	collector.flush()
 
 	match.TickRate = p.TickRate()
 	match.Duration = p.CurrentTime().Seconds()
-	match.Teams = buildTeams(p)
+	match.Teams = buildTeams(match.Rounds)
 
 	return match, nil
 }
@@ -107,6 +117,12 @@ type roundCollector struct {
 	lastSnapshotTick int
 	sampleInterval   int
 
+	// After RoundEnd fires, keep recording snapshots for a short buffer
+	// so the viewer doesn't cut off immediately on the last kill.
+	pendingEnd     bool
+	roundEndTick   int
+	postRoundTicks int
+
 	bombState   string
 	bombCarrier uint64
 }
@@ -115,9 +131,8 @@ func newRoundCollector(match *models.Match) *roundCollector {
 	return &roundCollector{match: match}
 }
 
-func (c *roundCollector) onRoundStart(p demoinfocs.Parser) {
-	// Flush previous round if it wasn't ended cleanly
-	c.flush()
+func (c *roundCollector) onFreezetimeEnd(p demoinfocs.Parser) {
+	c.finalizePendingRound()
 
 	gs := p.GameState()
 	c.current = &models.Round{
@@ -125,23 +140,24 @@ func (c *roundCollector) onRoundStart(p demoinfocs.Parser) {
 	}
 	c.snapshots = nil
 	c.kills = nil
+	c.pendingEnd = false
 	c.roundStartTick = gs.IngameTick()
 	c.lastSnapshotTick = 0
 
 	tickRate := p.TickRate()
 	if tickRate > 0 {
 		c.sampleInterval = int(math.Round(tickRate / float64(snapshotsPerSecond)))
+		c.postRoundTicks = int(tickRate * postRoundBufferSeconds)
 	}
 	if c.sampleInterval < 1 {
-		c.sampleInterval = 13 // fallback for 64-tick (approx 5 snapshots/sec)
+		c.sampleInterval = 13
 	}
 
-	// Reset bomb state for new round
 	c.bombState = ""
 	c.bombCarrier = 0
 }
 
-func (c *roundCollector) onRoundEnd(e events.RoundEnd) {
+func (c *roundCollector) onRoundEnd(e events.RoundEnd, p demoinfocs.Parser) {
 	if c.current == nil {
 		return
 	}
@@ -164,10 +180,20 @@ func (c *roundCollector) onRoundEnd(e events.RoundEnd) {
 		}
 	}
 
+	c.pendingEnd = true
+	c.roundEndTick = p.GameState().IngameTick()
+}
+
+func (c *roundCollector) finalizePendingRound() {
+	if c.current == nil || !c.pendingEnd {
+		return
+	}
+
 	c.current.Snapshots = c.snapshots
 	c.current.Kills = c.kills
 	c.match.Rounds = append(c.match.Rounds, *c.current)
 	c.current = nil
+	c.pendingEnd = false
 }
 
 func (c *roundCollector) onKill(e events.Kill, p demoinfocs.Parser) {
@@ -213,6 +239,12 @@ func (c *roundCollector) onFrame(p demoinfocs.Parser) {
 	gs := p.GameState()
 	tick := gs.IngameTick()
 
+	// Cut off snapshot collection once the post-round buffer expires
+	if c.pendingEnd && (tick-c.roundEndTick) > c.postRoundTicks {
+		c.finalizePendingRound()
+		return
+	}
+
 	if tick-c.lastSnapshotTick < c.sampleInterval {
 		return
 	}
@@ -251,7 +283,6 @@ func (c *roundCollector) onFrame(p demoinfocs.Parser) {
 
 		remaining := player.FlashDurationTimeRemaining().Seconds()
 		if remaining > 0 {
-			// Normalize to 0-255 range: max flash is ~5 seconds
 			ps.FlashAlpha = math.Min(remaining/5.0*255, 255)
 		}
 
@@ -285,7 +316,7 @@ func (c *roundCollector) captureBombState(gs demoinfocs.GameState) *models.BombS
 	}
 }
 
-// flush saves any in-progress round (e.g. when the demo ends mid-round).
+// flush saves any in-progress round that never received a RoundEnd (demo ends mid-round).
 func (c *roundCollector) flush() {
 	if c.current == nil {
 		return
@@ -306,33 +337,43 @@ func (c *roundCollector) ticksToSeconds(tick int, p demoinfocs.Parser) float64 {
 	return float64(elapsed) / tickRate
 }
 
-func buildTeams(p demoinfocs.Parser) models.Teams {
-	gs := p.GameState()
-	teams := models.Teams{}
+// buildTeams constructs team rosters from snapshot data across all rounds.
+// This is more reliable than querying the parser's demo end state which can miss disconnected players.
+func buildTeams(rounds []models.Round) models.Teams {
+	type playerRecord struct {
+		steamID uint64
+		name    string
+		team    string
+	}
 
-	if ct := gs.TeamCounterTerrorists(); ct != nil {
-		teams.CT.Name = ct.ClanName()
-		for _, player := range ct.Members() {
-			if player == nil {
-				continue
+	seen := make(map[uint64]*playerRecord)
+
+	for i := range rounds {
+		for _, snap := range rounds[i].Snapshots {
+			for _, ps := range snap.Players {
+				if ps.SteamID == 0 || ps.Team == "" {
+					continue
+				}
+				seen[ps.SteamID] = &playerRecord{
+					steamID: ps.SteamID,
+					name:    ps.Name,
+					team:    ps.Team,
+				}
 			}
-			teams.CT.Players = append(teams.CT.Players, models.PlayerInfo{
-				SteamID: player.SteamID64,
-				Name:    player.Name,
-			})
 		}
 	}
 
-	if t := gs.TeamTerrorists(); t != nil {
-		teams.T.Name = t.ClanName()
-		for _, player := range t.Members() {
-			if player == nil {
-				continue
-			}
-			teams.T.Players = append(teams.T.Players, models.PlayerInfo{
-				SteamID: player.SteamID64,
-				Name:    player.Name,
-			})
+	var teams models.Teams
+	for _, rec := range seen {
+		info := models.PlayerInfo{
+			SteamID: rec.steamID,
+			Name:    rec.name,
+		}
+		switch rec.team {
+		case "ct":
+			teams.CT.Players = append(teams.CT.Players, info)
+		case "t":
+			teams.T.Players = append(teams.T.Players, info)
 		}
 	}
 
