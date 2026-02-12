@@ -123,6 +123,10 @@ type roundCollector struct {
 	roundEndTick   int
 	postRoundTicks int
 
+	// Running score tallies — more reliable than reading from event state
+	ctScore int
+	tScore  int
+
 	bombState   string
 	bombCarrier uint64
 }
@@ -165,25 +169,23 @@ func (c *roundCollector) onRoundEnd(e events.RoundEnd, p demoinfocs.Parser) {
 	c.current.Winner = teamToString(e.Winner)
 	c.current.WinReason = roundEndReasonToString(e.Reason)
 
-	if e.WinnerState != nil {
-		score := e.WinnerState.Score() + 1 // score hasn't updated yet so we add 1
-		if e.Winner == common.TeamCounterTerrorists {
-			c.current.EndCTScore = score
-			if e.LoserState != nil {
-				c.current.EndTScore = e.LoserState.Score()
-			}
-		} else {
-			c.current.EndTScore = score
-			if e.LoserState != nil {
-				c.current.EndCTScore = e.LoserState.Score()
-			}
-		}
+	// Track scores ourselves rather than reading from the event's
+	// WinnerState/LoserState, more consistent this way
+	switch e.Winner {
+	case common.TeamCounterTerrorists:
+		c.ctScore++
+	case common.TeamTerrorists:
+		c.tScore++
 	}
+	c.current.EndCTScore = c.ctScore
+	c.current.EndTScore = c.tScore
 
+	// Don't finalize yet — continue capturing frames for the post-round
 	c.pendingEnd = true
 	c.roundEndTick = p.GameState().IngameTick()
 }
 
+// finalizePendingRound commits a round whose post-round buffer has expired.
 func (c *roundCollector) finalizePendingRound() {
 	if c.current == nil || !c.pendingEnd {
 		return
@@ -316,7 +318,6 @@ func (c *roundCollector) captureBombState(gs demoinfocs.GameState) *models.BombS
 	}
 }
 
-// flush saves any in-progress round that never received a RoundEnd (demo ends mid-round).
 func (c *roundCollector) flush() {
 	if c.current == nil {
 		return
@@ -338,7 +339,6 @@ func (c *roundCollector) ticksToSeconds(tick int, p demoinfocs.Parser) float64 {
 }
 
 // buildTeams constructs team rosters from snapshot data across all rounds.
-// This is more reliable than querying the parser's demo end state which can miss disconnected players.
 func buildTeams(rounds []models.Round) models.Teams {
 	type playerRecord struct {
 		steamID uint64
