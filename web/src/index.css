@@ -1,1 +1,26 @@
 @import "tailwindcss";
+
+@theme {
+  --color-bg: #16101c;
+  --color-surface: #16101c;
+  --color-surface-hover: #1d1426;
+  --color-border: #271b34;
+  --color-text-primary: #e8e8f0;
+  --color-text-muted: #8888a0;
+  --color-ct: #a2c6ff;
+  --color-ct-dim: #a2c6ff40;
+  --color-t: #ffdf93;
+  --color-t-dim: #ffdf9340;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
