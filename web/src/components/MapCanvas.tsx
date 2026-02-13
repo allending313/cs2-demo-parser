@@ -2,6 +2,7 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import type { MapConfig, PlayerState } from "../types/match";
 import { worldToCanvas } from "../utils/coordinates";
 import { getCSSColor } from "../utils/style";
+import { drawPlayerDot, drawPlayerName, drawViewCone, drawX } from "../utils/draw";
 
 interface MapCanvasProps {
   mapConfig: MapConfig;
@@ -10,11 +11,6 @@ interface MapCanvasProps {
   width: number;
   height: number;
 }
-
-const PLAYER_RADIUS = 6;
-const FONT = "600 11px -apple-system, BlinkMacSystemFont, sans-serif";
-const VIEW_CONE_LENGTH = 10;
-const VIEW_CONE_ANGLE = Math.PI / 6;
 
 export default function MapCanvas({
   mapConfig,
@@ -69,7 +65,7 @@ export default function MapCanvas({
 
       drawViewCone(ctx, x, y, player.yaw, color);
       drawPlayerDot(ctx, x, y, color);
-      drawPlayerName(ctx, x, y, player.name);
+      drawPlayerName(ctx, x, y, player.name, color);
     }
   }, [players, mapConfig, mapImageUrl, imageLoaded, width, height]);
 
@@ -86,69 +82,4 @@ export default function MapCanvas({
       className="block h-full w-full"
     />
   );
-}
-
-function drawPlayerDot(ctx: CanvasRenderingContext2D, x: number, y: number, color: string) {
-  ctx.beginPath();
-  ctx.arc(x, y, PLAYER_RADIUS, 0, Math.PI * 2);
-  ctx.fillStyle = color;
-  ctx.fill();
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = "rgba(0,0,0,0.5)";
-  ctx.stroke();
-}
-
-function drawPlayerName(ctx: CanvasRenderingContext2D, x: number, y: number, name: string) {
-  ctx.font = FONT;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "bottom";
-  ctx.fillStyle = "rgba(0,0,0,0.7)";
-  ctx.fillText(name, x + 1, y - PLAYER_RADIUS - 3);
-  ctx.fillStyle = "#fff";
-  ctx.fillText(name, x, y - PLAYER_RADIUS - 4);
-}
-
-function drawViewCone(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  yawDegrees: number,
-  color: string
-) {
-  // Align yaw (convert CS2 degrees to canvas radians)
-  // CS2: east=0 degrees, counterclockwise
-  // Canvas: east=0 radians, clockwise
-  const yawRad = (-yawDegrees * Math.PI) / 180;
-
-  // Calculate tip point (at VIEW_CONE_LENGTH distance)
-  const tipX = x + Math.cos(yawRad) * VIEW_CONE_LENGTH;
-  const tipY = y + Math.sin(yawRad) * VIEW_CONE_LENGTH;
-
-  // Calculate base points (near player)
-  const baseRadius = 8;
-  const leftX = x + Math.cos(yawRad - VIEW_CONE_ANGLE) * baseRadius;
-  const leftY = y + Math.sin(yawRad - VIEW_CONE_ANGLE) * baseRadius;
-  const rightX = x + Math.cos(yawRad + VIEW_CONE_ANGLE) * baseRadius;
-  const rightY = y + Math.sin(yawRad + VIEW_CONE_ANGLE) * baseRadius;
-
-  ctx.beginPath();
-  ctx.moveTo(leftX, leftY);
-  ctx.lineTo(tipX, tipY);
-  ctx.lineTo(rightX, rightY);
-  ctx.closePath();
-
-  ctx.fillStyle = color + "80" // 50% opacity
-  ctx.fill();
-}
-
-function drawX(ctx: CanvasRenderingContext2D, x: number, y: number, color: string) {
-  const size = 5;
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(x - size, y - size);
-  ctx.lineTo(x + size, y + size);
-  ctx.moveTo(x + size, y - size);
-  ctx.lineTo(x - size, y + size);
-  ctx.stroke();
 }
