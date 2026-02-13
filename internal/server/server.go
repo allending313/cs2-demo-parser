@@ -189,13 +189,11 @@ func (s *Server) handleMatchStatus(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleGetMatch(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	// If there's an in-progress job, return its status
 	if job, ok := s.jobs.Get(id); ok && job.Status != models.JobStatusReady {
 		writeJSON(w, http.StatusOK, job)
 		return
 	}
 
-	// Serve the parsed match from disk (works across server restarts)
 	matchPath := filepath.Join(s.matchDir, id+".json")
 	data, err := os.ReadFile(matchPath)
 	if err != nil {
@@ -219,7 +217,6 @@ func (s *Server) handleGetMatch(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleMapRadar(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 
-	// Prevent path traversal
 	if strings.Contains(name, "..") || strings.Contains(name, "/") {
 		http.NotFound(w, r)
 		return

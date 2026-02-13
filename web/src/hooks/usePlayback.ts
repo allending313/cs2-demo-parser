@@ -24,7 +24,7 @@ export interface PlaybackControls {
 const SPEEDS = [0.5, 1, 2, 4];
 
 export function usePlayback(rounds: Round[]): [PlaybackState, PlaybackControls] {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [speed, setSpeedState] = useState(1);
   const [roundIndex, setRoundIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -85,7 +85,7 @@ export function usePlayback(rounds: Round[]): [PlaybackState, PlaybackControls] 
       if (index < 0 || index >= rounds.length) return;
       setRoundIndex(index);
       setCurrentTime(0);
-      setIsPlaying(false);
+      setIsPlaying(true);
     },
     [rounds.length]
   );

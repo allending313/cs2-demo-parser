@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import type { MapConfig, PlayerState } from "../types/match";
 import { worldToCanvas } from "../utils/coordinates";
 import { getCSSColor } from "../utils/style";
@@ -25,14 +25,15 @@ export default function MapCanvas({
 }: MapCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
-  const imageLoadedRef = useRef(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
+    setImageLoaded(false);
     const img = new Image();
     img.src = mapImageUrl;
     img.onload = () => {
       imageRef.current = img;
-      imageLoadedRef.current = true;
+      setImageLoaded(true);
     };
   }, [mapImageUrl]);
 
@@ -44,7 +45,7 @@ export default function MapCanvas({
 
     ctx.clearRect(0, 0, width, height);
 
-    if (imageLoadedRef.current && imageRef.current) {
+    if (imageLoaded && imageRef.current) {
       ctx.drawImage(imageRef.current, 0, 0, width, height);
     } else {
       ctx.fillStyle = "#1a1a2e";
@@ -70,7 +71,7 @@ export default function MapCanvas({
       drawPlayerDot(ctx, x, y, color);
       drawPlayerName(ctx, x, y, player.name);
     }
-  }, [players, mapConfig, mapImageUrl, width, height]);
+  }, [players, mapConfig, mapImageUrl, imageLoaded, width, height]);
 
   useEffect(() => {
     const id = requestAnimationFrame(draw);
