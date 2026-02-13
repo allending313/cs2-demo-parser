@@ -1,6 +1,28 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Stratum2";
+  src: url("./assets/fonts/stratumno2_light.otf") format("opentype");
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Stratum2";
+  src: url("./assets/fonts/stratumno2_regular.otf") format("opentype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Stratum2";
+  src: url("./assets/fonts/stratumno2_bold.otf") format("opentype");
+  font-weight: 700;
+  font-display: swap;
+}
+
 @theme {
+  --font-sans: "Stratum2", sans-serif;
   --color-bg: #16101c;
   --color-surface: #16101c;
   --color-surface-hover: #1d1426;

@@ -1,5 +1,5 @@
 export const PLAYER_RADIUS = 6;
-export const FONT = "600 11px -apple-system, BlinkMacSystemFont, sans-serif";
+export const FONT = "700 11px Stratum2, sans-serif";
 const VIEW_CONE_LENGTH = 10;
 const VIEW_CONE_ANGLE = Math.PI / 6;
 
