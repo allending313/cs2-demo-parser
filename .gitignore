@@ -3,6 +3,7 @@
 *.dem
 
 # Go
+/bin/
 /dist/
 *.test
 *.out
@@ -10,6 +11,7 @@ coverage.out
 
 # Frontend
 /web/dist/
+!/web/dist/.gitkeep
 /web/node_modules/
 *.tsbuildinfo
 
