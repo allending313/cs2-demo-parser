@@ -1,14 +1,13 @@
 package models
 
 import (
+	"os"
 	"reflect"
 	"testing"
 )
 
 func TestLoadMapConfigs(t *testing.T) {
-	configsDir := "../../assets/maps/configs"
-
-	configs, err := LoadMapConfigs(configsDir)
+	configs, err := LoadMapConfigs(os.DirFS("../../assets/maps"), "configs")
 	if err != nil {
 		t.Fatalf("LoadMapConfigs failed: %v", err)
 	}

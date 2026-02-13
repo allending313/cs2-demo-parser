@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
 
+	cs2demoparser "github.com/allending313/cs2-demo-parser"
 	"github.com/allending313/cs2-demo-parser/internal/server"
 )
 
@@ -14,11 +16,23 @@ func main() {
 
 	port := envOrDefault("PORT", "3001")
 
+	webFS, err := fs.Sub(cs2demoparser.WebFS, "web/dist")
+	if err != nil {
+		logger.Error("failed to create web sub-filesystem", "error", err)
+		os.Exit(1)
+	}
+
+	mapsFS, err := fs.Sub(cs2demoparser.MapsFS, "assets/maps")
+	if err != nil {
+		logger.Error("failed to create maps sub-filesystem", "error", err)
+		os.Exit(1)
+	}
+
 	srv, err := server.New(server.Config{
 		UploadDir: envOrDefault("UPLOAD_DIR", "./data/uploads"),
 		MatchDir:  envOrDefault("MATCH_DIR", "./data/matches"),
-		MapsDir:   envOrDefault("MAPS_DIR", "./assets/maps"),
-		WebDir:    envOrDefault("WEB_DIR", "./web/dist"),
+		WebFS:     webFS,
+		MapsFS:    mapsFS,
 	}, logger)
 	if err != nil {
 		logger.Error("failed to initialize server", "error", err)

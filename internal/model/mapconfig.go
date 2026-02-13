@@ -3,15 +3,15 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
+	"io/fs"
+	"path"
 	"strings"
 )
 
-func LoadMapConfigs(dir string) (map[string]*MapConfig, error) {
+func LoadMapConfigs(fsys fs.FS, dir string) (map[string]*MapConfig, error) {
 	configs := make(map[string]*MapConfig)
 
-	entries, err := os.ReadDir(dir)
+	entries, err := fs.ReadDir(fsys, dir)
 	if err != nil {
 		return nil, fmt.Errorf("reading map configs dir: %w", err)
 	}
@@ -21,7 +21,7 @@ func LoadMapConfigs(dir string) (map[string]*MapConfig, error) {
 			continue
 		}
 
-		data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+		data, err := fs.ReadFile(fsys, path.Join(dir, entry.Name()))
 		if err != nil {
 			return nil, fmt.Errorf("reading %s: %w", entry.Name(), err)
 		}

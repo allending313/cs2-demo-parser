@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
@@ -20,8 +21,8 @@ type Server struct {
 	mux        *http.ServeMux
 	uploadDir  string
 	matchDir   string
-	mapsDir    string
-	webDir     string
+	webFS      fs.FS
+	mapsFS     fs.FS
 	mapConfigs map[string]*models.MapConfig
 	jobs       *models.JobStore
 	logger     *slog.Logger
@@ -30,8 +31,8 @@ type Server struct {
 type Config struct {
 	UploadDir string
 	MatchDir  string
-	MapsDir   string
-	WebDir    string
+	WebFS     fs.FS
+	MapsFS    fs.FS
 }
 
 func New(cfg Config, logger *slog.Logger) (*Server, error) {
@@ -41,7 +42,7 @@ func New(cfg Config, logger *slog.Logger) (*Server, error) {
 		}
 	}
 
-	mapConfigs, err := models.LoadMapConfigs(filepath.Join(cfg.MapsDir, "configs"))
+	mapConfigs, err := models.LoadMapConfigs(cfg.MapsFS, "configs")
 	if err != nil {
 		logger.Warn("failed to load map configs, continuing without them", "error", err)
 		mapConfigs = make(map[string]*models.MapConfig)
@@ -51,8 +52,8 @@ func New(cfg Config, logger *slog.Logger) (*Server, error) {
 		mux:        http.NewServeMux(),
 		uploadDir:  cfg.UploadDir,
 		matchDir:   cfg.MatchDir,
-		mapsDir:    cfg.MapsDir,
-		webDir:     cfg.WebDir,
+		webFS:      cfg.WebFS,
+		mapsFS:     cfg.MapsFS,
 		mapConfigs: mapConfigs,
 		jobs:       models.NewJobStore(),
 		logger:     logger,
@@ -74,19 +75,26 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/maps", s.handleListMaps)
 	s.mux.HandleFunc("GET /api/health", s.handleHealth)
 
-	// Serve React SPA (only if the web dir exists)
-	if _, err := os.Stat(s.webDir); err == nil {
-		fs := http.FileServer(http.Dir(s.webDir))
-		s.mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-			// For SPA routing: serve index.html for paths that don't match a file
-			path := filepath.Join(s.webDir, r.URL.Path)
-			if _, err := os.Stat(path); os.IsNotExist(err) {
-				http.ServeFile(w, r, filepath.Join(s.webDir, "index.html"))
+	// Serve React SPA from embedded filesystem
+	fileServer := http.FileServer(http.FS(s.webFS))
+	s.mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		// Serve index.html for paths that don't match a file
+		path := r.URL.Path
+		if path != "/" {
+			name := strings.TrimPrefix(path, "/")
+			if _, err := fs.Stat(s.webFS, name); err != nil {
+				index, err := fs.ReadFile(s.webFS, "index.html")
+				if err != nil {
+					http.NotFound(w, r)
+					return
+				}
+				w.Header().Set("Content-Type", "text/html")
+				w.Write(index)
 				return
 			}
-			fs.ServeHTTP(w, r)
-		})
-	}
+		}
+		fileServer.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -181,21 +189,17 @@ func (s *Server) handleMatchStatus(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleGetMatch(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	job, ok := s.jobs.Get(id)
-	if !ok {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "match not found"})
-		return
-	}
-
-	if job.Status != models.JobStatusReady {
+	// If there's an in-progress job, return its status
+	if job, ok := s.jobs.Get(id); ok && job.Status != models.JobStatusReady {
 		writeJSON(w, http.StatusOK, job)
 		return
 	}
 
+	// Serve the parsed match from disk (works across server restarts)
 	matchPath := filepath.Join(s.matchDir, id+".json")
 	data, err := os.ReadFile(matchPath)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "match data unavailable"})
+		writeJSON(w, http.StatusNotFound, map[string]string{"error": "match not found"})
 		return
 	}
 
@@ -221,13 +225,14 @@ func (s *Server) handleMapRadar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	radarPath := filepath.Join(s.mapsDir, "radars", name+".png")
-	if _, err := os.Stat(radarPath); os.IsNotExist(err) {
+	data, err := fs.ReadFile(s.mapsFS, "radars/"+name+".png")
+	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
 
-	http.ServeFile(w, r, radarPath)
+	w.Header().Set("Content-Type", "image/png")
+	w.Write(data)
 }
 
 func (s *Server) handleListMaps(w http.ResponseWriter, _ *http.Request) {
