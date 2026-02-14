@@ -17,26 +17,28 @@ git clone https://github.com/allending313/cs2-demo-parser.git
 cd cs2-demo-parser
 ```
 
-2. Install Go dependencies
-```bash
-go mod download
-```
-
-3. Install and build the web viewer
-```bash
-cd web
-npm install
-npm run build
-cd ..
-```
-
-4. Run the server
+2. Start the Go server
 ```bash
 go run cmd/server/main.go
 ```
 
-The server will start on `http://localhost:3001`.
+3. Start the web viewer
+```bash
+cd web
+npm install
+npm run dev
+```
 
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Space` | Play / Pause |
+| `←` | Skip back 5 seconds |
+| `→` | Skip forward 5 seconds |
+| `↑` | Previous round |
+| `↓` | Next round |
+| `.` | Cycle playback speed (0.5x / 1x / 2x / 4x) |
 
 ## Project Structure
 

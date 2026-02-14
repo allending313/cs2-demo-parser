@@ -17,6 +17,7 @@ export interface PlaybackControls {
   pause: () => void;
   togglePlay: () => void;
   setSpeed: (speed: number) => void;
+  cycleSpeed: () => void;
   setRound: (index: number) => void;
   seek: (time: number) => void;
 }
@@ -80,6 +81,13 @@ export function usePlayback(rounds: Round[]): [PlaybackState, PlaybackControls] 
     if (SPEEDS.includes(s)) setSpeedState(s);
   }, []);
 
+  const cycleSpeed = useCallback(() => {
+    setSpeedState((prev) => {
+      const idx = SPEEDS.indexOf(prev);
+      return SPEEDS[(idx + 1) % SPEEDS.length]!;
+    });
+  }, []);
+
   const setRound = useCallback(
     (index: number) => {
       if (index < 0 || index >= rounds.length) return;
@@ -97,7 +105,7 @@ export function usePlayback(rounds: Round[]): [PlaybackState, PlaybackControls] 
 
   return [
     { isPlaying, speed, roundIndex, currentTime, roundDuration, players, currentSnapshot },
-    { play, pause, togglePlay, setSpeed, setRound, seek },
+    { play, pause, togglePlay, setSpeed, cycleSpeed, setRound, seek },
   ];
 }
 

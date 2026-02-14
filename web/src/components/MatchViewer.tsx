@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useCallback } from "react";
 import type { MatchData } from "../types/match";
 import { usePlayback } from "../hooks/usePlayback";
 import { formatTime } from "../utils/format";
@@ -30,6 +30,44 @@ export default function MatchViewer({ match, radarImageUrl }: MatchViewerProps) 
   // Show the score at the start of this round, not the end
   const ctScore = round ? round.endCTScore - (round.winner === "ct" ? 1 : 0) : 0;
   const tScore = round ? round.endTScore - (round.winner === "t" ? 1 : 0) : 0;
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      switch (e.key) {
+        case " ":
+          e.preventDefault();
+          controls.togglePlay();
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          controls.seek(playback.currentTime - 5);
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          controls.seek(playback.currentTime + 5);
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          controls.setRound(playback.roundIndex - 1);
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          controls.setRound(playback.roundIndex + 1);
+          break;
+        case ".":
+          controls.cycleSpeed();
+          break;
+      }
+    },
+    [controls, playback.currentTime, playback.roundIndex]
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   return (
     <div className="flex h-screen flex-col bg-bg text-text-primary">

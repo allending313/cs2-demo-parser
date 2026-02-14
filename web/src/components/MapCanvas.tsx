@@ -33,12 +33,15 @@ export default function MapCanvas({
     };
   }, [mapImageUrl]);
 
+  const dpr = window.devicePixelRatio || 1;
+
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
 
     if (imageLoaded && imageRef.current) {
@@ -67,7 +70,7 @@ export default function MapCanvas({
       drawPlayerDot(ctx, x, y, color);
       drawPlayerName(ctx, x, y, player.name, color);
     }
-  }, [players, mapConfig, mapImageUrl, imageLoaded, width, height]);
+  }, [players, mapConfig, mapImageUrl, imageLoaded, width, height, dpr]);
 
   useEffect(() => {
     const id = requestAnimationFrame(draw);
@@ -77,8 +80,8 @@ export default function MapCanvas({
   return (
     <canvas
       ref={canvasRef}
-      width={width}
-      height={height}
+      width={width * dpr}
+      height={height * dpr}
       className="block h-full w-full"
     />
   );
