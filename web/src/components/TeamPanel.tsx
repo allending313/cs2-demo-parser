@@ -8,7 +8,6 @@ interface TeamPanelProps {
 }
 
 export default function TeamPanel({ side, team, score, players }: TeamPanelProps) {
-  const stateMap = new Map(players.map((p) => [p.steamId, p]));
   const nameColor = side === "ct" ? "text-ct" : "text-t";
   const rowBg = side === "ct" ? "bg-ct-dim" : "bg-t-dim";
 
@@ -22,21 +21,18 @@ export default function TeamPanel({ side, team, score, players }: TeamPanelProps
       </div>
 
       <div className="flex flex-col gap-0.5">
-        {team.players.map((tp) => {
-          const state = stateMap.get(tp.steamId);
-          const dead = state && !state.isAlive;
+        {[...players].sort((a, b) => (a.steamId < b.steamId ? -1 : a.steamId > b.steamId ? 1 : 0)).map((state) => {
+          const dead = !state.isAlive;
 
           return (
             <div
-              key={tp.steamId}
+              key={state.steamId}
               className={`flex items-center justify-between rounded px-2 py-1.5 text-[13px] transition-opacity ${rowBg} ${dead ? "opacity-40" : ""}`}
             >
-              <span className="truncate font-medium text-text-primary">{tp.name}</span>
-              {state && (
-                <span className="ml-2 shrink-0 text-xs font-semibold tabular-nums text-text-muted">
-                  {state.isAlive ? `${state.hp} HP` : "DEAD"}
-                </span>
-              )}
+              <span className="truncate font-medium text-text-primary">{state.name}</span>
+              <span className="ml-2 shrink-0 text-xs font-semibold tabular-nums text-text-muted">
+                {state.isAlive ? `${state.hp} HP` : "DEAD"}
+              </span>
             </div>
           );
         })}

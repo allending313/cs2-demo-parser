@@ -27,6 +27,16 @@ export default function MatchViewer({ match, radarImageUrl }: MatchViewerProps) 
     [playback.players]
   );
 
+  // Resolve which org name belongs on which side right now.
+  // match.teams is keyed by end-of-match sides, but players swap at halftime.
+  const { ctTeam, tTeam } = useMemo(() => {
+    const staticCtIds = new Set(match.teams.ct.players.map((p) => p.steamId));
+    const swapped = ctPlayers.length > 0 && !staticCtIds.has(ctPlayers[0]!.steamId);
+    return swapped
+      ? { ctTeam: match.teams.t, tTeam: match.teams.ct }
+      : { ctTeam: match.teams.ct, tTeam: match.teams.t };
+  }, [ctPlayers, match.teams]);
+
   // Show the score at the start of this round, not the end
   const ctScore = round ? round.endCTScore - (round.winner === "ct" ? 1 : 0) : 0;
   const tScore = round ? round.endTScore - (round.winner === "t" ? 1 : 0) : 0;
@@ -78,7 +88,7 @@ export default function MatchViewer({ match, radarImageUrl }: MatchViewerProps) 
 
       {/* Main area */}
       <div className="flex min-h-0 flex-1 items-center justify-center gap-4 px-4 py-3">
-        <TeamPanel side="t" team={match.teams.t} score={tScore} players={tPlayers} />
+        <TeamPanel side="t" team={tTeam} score={tScore} players={tPlayers} />
 
         <div
           className="shrink-0 overflow-hidden rounded shadow-lg"
@@ -93,7 +103,7 @@ export default function MatchViewer({ match, radarImageUrl }: MatchViewerProps) 
           />
         </div>
 
-        <TeamPanel side="ct" team={match.teams.ct} score={ctScore} players={ctPlayers} />
+        <TeamPanel side="ct" team={ctTeam} score={ctScore} players={ctPlayers} />
       </div>
 
       {/* Bottom bar */}
