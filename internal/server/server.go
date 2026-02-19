@@ -102,10 +102,10 @@ func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) handleParse(w http.ResponseWriter, r *http.Request) {
-	// 500MB limit
-	r.Body = http.MaxBytesReader(w, r.Body, 500<<20)
+	// 800MB limit
+	r.Body = http.MaxBytesReader(w, r.Body, 800<<20)
 
-	if err := r.ParseMultipartForm(500 << 20); err != nil {
+	if err := r.ParseMultipartForm(800 << 20); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "file too large or invalid multipart form"})
 		return
 	}
