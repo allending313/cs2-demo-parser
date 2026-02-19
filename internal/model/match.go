@@ -26,13 +26,14 @@ type PlayerInfo struct {
 }
 
 type Round struct {
-	Number     int         `json:"number"`
-	Winner     string      `json:"winner"`
-	WinReason  string      `json:"winReason"`
-	EndTScore  int         `json:"endTScore"`
-	EndCTScore int         `json:"endCTScore"`
-	Snapshots  []Snapshot  `json:"snapshots"`
-	Kills      []KillEvent `json:"kills"`
+	Number     int            `json:"number"`
+	Winner     string         `json:"winner"`
+	WinReason  string         `json:"winReason"`
+	EndTScore  int            `json:"endTScore"`
+	EndCTScore int            `json:"endCTScore"`
+	Snapshots  []Snapshot     `json:"snapshots"`
+	Kills      []KillEvent    `json:"kills"`
+	Grenades   []GrenadeEvent `json:"grenades"`
 }
 
 type Snapshot struct {
@@ -77,6 +78,31 @@ type KillEvent struct {
 	AttackerY   float64 `json:"attackerY"`
 	VictimX     float64 `json:"victimX"`
 	VictimY     float64 `json:"victimY"`
+}
+
+type GrenadeEvent struct {
+	Type    string `json:"type"`
+	Thrower uint64 `json:"thrower"`
+
+	ThrowTick int     `json:"throwTick"`
+	ThrowTime float64 `json:"throwTime"`
+	ThrowX    float64 `json:"throwX"`
+	ThrowY    float64 `json:"throwY"`
+
+	DetonateTick int     `json:"detonateTick"`
+	DetonateTime float64 `json:"detonateTime"`
+	DetonateX    float64 `json:"detonateX"`
+	DetonateY    float64 `json:"detonateY"`
+
+	EffectDuration float64 `json:"effectDuration,omitempty"`
+
+	Trajectory []TrajectoryPoint `json:"trajectory,omitempty"`
+}
+
+type TrajectoryPoint struct {
+	TimeInRound float64 `json:"t"`
+	X           float64 `json:"x"`
+	Y           float64 `json:"y"`
 }
 
 type MapConfig struct {
