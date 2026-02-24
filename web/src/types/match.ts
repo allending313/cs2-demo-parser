@@ -56,6 +56,29 @@ export interface KillEvent {
   victimY: number;
 }
 
+export interface TrajectoryPoint {
+  t: number;
+  x: number;
+  y: number;
+}
+
+export type GrenadeType = "smoke" | "flash" | "he" | "molotov" | "incendiary" | "decoy";
+
+export interface GrenadeEvent {
+  type: GrenadeType;
+  thrower: string;
+  throwTick: number;
+  throwTime: number;
+  throwX: number;
+  throwY: number;
+  detonateTick: number;
+  detonateTime: number;
+  detonateX: number;
+  detonateY: number;
+  effectDuration: number;
+  trajectory: TrajectoryPoint[];
+}
+
 export interface Round {
   number: number;
   winner: Team;
@@ -64,6 +87,7 @@ export interface Round {
   endCTScore: number;
   snapshots: Snapshot[];
   kills: KillEvent[];
+  grenades: GrenadeEvent[];
 }
 
 export interface MapConfig {
