@@ -218,6 +218,7 @@ func (c *roundCollector) onFrame(p demoinfocs.Parser) {
 	}
 
 	c.snapshots = append(c.snapshots, snapshot)
+	c.sampleGrenadePositions(gs, p)
 }
 
 func (c *roundCollector) captureBombState(gs demoinfocs.GameState) *models.BombState {

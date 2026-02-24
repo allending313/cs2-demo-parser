@@ -99,7 +99,7 @@ func ParseDemo(filePath, matchID string, onProgress ProgressFunc) (*models.Match
 	})
 
 	p.RegisterEventHandler(func(e events.SmokeStart) {
-		collector.onSmokeStart(e)
+		collector.onSmokeStart(e, p)
 	})
 
 	p.RegisterEventHandler(func(e events.SmokeExpired) {
