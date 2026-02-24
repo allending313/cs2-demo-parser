@@ -98,6 +98,10 @@ func ParseDemo(filePath, matchID string, onProgress ProgressFunc) (*models.Match
 		collector.onGrenadeDestroy(e, p)
 	})
 
+	p.RegisterEventHandler(func(e events.HeExplode) {
+		collector.onHeExplode(e, p)
+	})
+
 	p.RegisterEventHandler(func(e events.SmokeStart) {
 		collector.onSmokeStart(e, p)
 	})

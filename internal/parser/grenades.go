@@ -79,24 +79,103 @@ func (c *roundCollector) onGrenadeDestroy(e events.GrenadeProjectileDestroy, p d
 	ig.event.DetonateTime = c.ticksToSeconds(tick, p)
 	ig.event.DetonateX = pos.X
 	ig.event.DetonateY = pos.Y
+
+	// Append the detonation point so the trajectory covers the full flight path
+	ig.trajectory = append(ig.trajectory, models.TrajectoryPoint{
+		TimeInRound: ig.event.DetonateTime,
+		X:           pos.X,
+		Y:           pos.Y,
+	})
 	ig.event.Trajectory = downsampleTrajectory(ig.trajectory, maxTrajectoryPoints)
 
 	c.grenades = append(c.grenades, ig.event)
 	delete(c.inflight, id)
 }
 
-func (c *roundCollector) onSmokeStart(e events.SmokeStart) {
+func (c *roundCollector) onHeExplode(e events.HeExplode, p demoinfocs.Parser) {
 	if c.current == nil {
 		return
 	}
 
-	// Patch the last matching grenade entry with the default smoke duration.
-	// SmokeExpired will correct it with the actual duration.
+	id := e.GrenadeEntityID
+	ig, ok := c.inflight[id]
+	if !ok {
+		return
+	}
+
+	gs := p.GameState()
+	tick := gs.IngameTick()
+
+	ig.event.DetonateTick = tick
+	ig.event.DetonateTime = c.ticksToSeconds(tick, p)
+	ig.event.DetonateX = e.Position.X
+	ig.event.DetonateY = e.Position.Y
+
+	ig.trajectory = append(ig.trajectory, models.TrajectoryPoint{
+		TimeInRound: ig.event.DetonateTime,
+		X:           e.Position.X,
+		Y:           e.Position.Y,
+	})
+	ig.event.Trajectory = downsampleTrajectory(ig.trajectory, maxTrajectoryPoints)
+
+	c.grenades = append(c.grenades, ig.event)
+	delete(c.inflight, id)
+}
+
+func (c *roundCollector) onSmokeStart(e events.SmokeStart, p demoinfocs.Parser) {
+	if c.current == nil {
+		return
+	}
+
+	gs := p.GameState()
+	tick := gs.IngameTick()
+	detonateTime := c.ticksToSeconds(tick, p)
+
+	// Find the inflight smoke grenade closest to this position and finalize it.
+	// GrenadeProjectileDestroy fires too late for smokes (when the cloud clears),
+	// so we use SmokeStart as the actual detonation event.
+	bestID := -1
+	bestDist := math.MaxFloat64
+	for id, ig := range c.inflight {
+		if ig.event.Type != "smoke" {
+			continue
+		}
+		dx := ig.event.ThrowX - e.Position.X
+		dy := ig.event.ThrowY - e.Position.Y
+		dist := dx*dx + dy*dy
+		if dist < bestDist {
+			bestDist = dist
+			bestID = id
+		}
+	}
+
 	key := quantizePos(e.Position.X, e.Position.Y)
-	idx := c.findLastGrenadeByType("smoke")
-	if idx >= 0 {
-		c.grenades[idx].EffectDuration = smokeDuration
+
+	if bestID >= 0 {
+		ig := c.inflight[bestID]
+		ig.event.DetonateTick = tick
+		ig.event.DetonateTime = detonateTime
+		ig.event.DetonateX = e.Position.X
+		ig.event.DetonateY = e.Position.Y
+		ig.event.EffectDuration = smokeDuration
+
+		ig.trajectory = append(ig.trajectory, models.TrajectoryPoint{
+			TimeInRound: detonateTime,
+			X:           e.Position.X,
+			Y:           e.Position.Y,
+		})
+		ig.event.Trajectory = downsampleTrajectory(ig.trajectory, maxTrajectoryPoints)
+
+		idx := len(c.grenades)
+		c.grenades = append(c.grenades, ig.event)
+		delete(c.inflight, bestID)
 		c.smokeByPos[key] = idx
+	} else {
+		idx := c.findGrenadeByTypeAndPos("smoke", e.Position.X, e.Position.Y)
+		if idx >= 0 {
+			c.grenades[idx].EffectDuration = smokeDuration
+			c.smokeByPos[key] = idx
+		}
 	}
 }
 
@@ -124,10 +203,21 @@ func (c *roundCollector) onInfernoStart(e events.InfernoStart, p demoinfocs.Pars
 		return
 	}
 
-	// Associate inferno entity with the most recent molotov/incendiary grenade
-	idx := c.findLastGrenadeByType("molotov")
+	// Compute inferno center from its fires to match against the correct grenade
+	var cx, cy float64
+	fires := e.Inferno.Fires().Active().List()
+	if len(fires) > 0 {
+		for _, f := range fires {
+			cx += f.Vector.X
+			cy += f.Vector.Y
+		}
+		cx /= float64(len(fires))
+		cy /= float64(len(fires))
+	}
+
+	idx := c.findGrenadeByTypeAndPos("molotov", cx, cy)
 	if idx < 0 {
-		idx = c.findLastGrenadeByType("incendiary")
+		idx = c.findGrenadeByTypeAndPos("incendiary", cx, cy)
 	}
 	if idx >= 0 {
 		c.grenades[idx].EffectDuration = molotovMaxDuration
@@ -148,7 +238,11 @@ func (c *roundCollector) onInfernoExpired(e events.InfernoExpired, p demoinfocs.
 
 	expireTime := c.ticksToSeconds(p.GameState().IngameTick(), p)
 	if det := c.grenades[idx].DetonateTime; det > 0 {
-		c.grenades[idx].EffectDuration = expireTime - det
+		duration := expireTime - det
+		if duration > molotovMaxDuration {
+			duration = molotovMaxDuration
+		}
+		c.grenades[idx].EffectDuration = duration
 	}
 	delete(c.infernoByUID, int64(uid))
 }
@@ -158,22 +252,34 @@ func (c *roundCollector) onDecoyStart(e events.DecoyStart, p demoinfocs.Parser) 
 		return
 	}
 
-	// Patch the most recent decoy with a default duration
-	idx := c.findLastGrenadeByType("decoy")
+	// Patch the closest unmatched decoy by position
+	idx := c.findGrenadeByTypeAndPos("decoy", e.Position.X, e.Position.Y)
 	if idx >= 0 {
 		c.grenades[idx].EffectDuration = decoyDuration
 	}
 }
 
-// findLastGrenadeByType returns the index of the most recently added grenade
-// of the given type that has no effect duration set yet, or -1.
-func (c *roundCollector) findLastGrenadeByType(typ string) int {
+// findGrenadeByTypeAndPos returns the index of the unmatched grenade of the
+// given type whose detonation position is closest to (x, y), or -1.
+// This avoids mis-matching when multiple grenades of the same type detonate
+// close together in time.
+func (c *roundCollector) findGrenadeByTypeAndPos(typ string, x, y float64) int {
+	bestIdx := -1
+	bestDist := math.MaxFloat64
 	for i := len(c.grenades) - 1; i >= 0; i-- {
-		if c.grenades[i].Type == typ && c.grenades[i].EffectDuration == 0 {
-			return i
+		g := c.grenades[i]
+		if g.Type != typ || g.EffectDuration != 0 {
+			continue
+		}
+		dx := g.DetonateX - x
+		dy := g.DetonateY - y
+		dist := dx*dx + dy*dy
+		if dist < bestDist {
+			bestDist = dist
+			bestIdx = i
 		}
 	}
-	return -1
+	return bestIdx
 }
 
 // finalizeInflightGrenades commits any grenades still mid-air at round end.
