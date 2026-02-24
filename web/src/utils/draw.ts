@@ -9,6 +9,7 @@ const VIEW_CONE_ANGLE = Math.PI / 6;
 const GRENADE_RADIUS = 5;
 const GRENADE_FONT = "700 8px Stratum2, sans-serif";
 const EFFECT_RING_RADIUS = 10;
+const SMOKE_EFFECT_RADIUS = 18;
 
 const TRAIL_DASH = [2, 3];
 const TRAIL_WIDTH = 1;
@@ -164,28 +165,29 @@ export function drawGrenade(
   const color = GRENADE_COLORS[type];
   const label = GRENADE_LABELS[type];
 
-  // grenade effect area
   if (state === "effect") {
+    const effectRadius =
+      type === "smoke" ? SMOKE_EFFECT_RADIUS : EFFECT_RING_RADIUS;
     ctx.beginPath();
-    ctx.arc(x, y, EFFECT_RING_RADIUS, 0, Math.PI * 2);
+    ctx.arc(x, y, effectRadius, 0, Math.PI * 2);
     ctx.fillStyle = color + "30";
     ctx.fill();
     ctx.lineWidth = 1;
     ctx.strokeStyle = color + "60";
     ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.arc(x, y, GRENADE_RADIUS, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(0,0,0,0.5)";
+    ctx.stroke();
   }
-
-  ctx.beginPath();
-  ctx.arc(x, y, GRENADE_RADIUS, 0, Math.PI * 2);
-  ctx.fillStyle = color;
-  ctx.fill();
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = "rgba(0,0,0,0.5)";
-  ctx.stroke();
 
   ctx.font = GRENADE_FONT;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillStyle = "#000";
+  ctx.fillStyle = state === "effect" ? color : "#000";
   ctx.fillText(label, x, y);
 }
