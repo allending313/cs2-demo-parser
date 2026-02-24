@@ -1,13 +1,15 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import type { MapConfig, PlayerState } from "../types/match";
+import type { ActiveGrenade } from "../utils/grenade";
 import { worldToCanvas } from "../utils/coordinates";
 import { getCSSColor } from "../utils/style";
-import { drawPlayerDot, drawPlayerName, drawViewCone, drawX } from "../utils/draw";
+import { drawPlayerDot, drawPlayerName, drawViewCone, drawX, drawGrenade, drawGrenadeTrail } from "../utils/draw";
 
 interface MapCanvasProps {
   mapConfig: MapConfig;
   mapImageUrl: string;
   players: PlayerState[];
+  grenades: ActiveGrenade[];
   width: number;
   height: number;
 }
@@ -16,6 +18,7 @@ export default function MapCanvas({
   mapConfig,
   mapImageUrl,
   players,
+  grenades,
   width,
   height,
 }: MapCanvasProps) {
@@ -51,6 +54,15 @@ export default function MapCanvas({
       ctx.fillRect(0, 0, width, height);
     }
 
+    for (const g of grenades) {
+      if (g.trail.length >= 2) {
+        const canvasTrail = g.trail.map((p) => worldToCanvas(p.x, p.y, mapConfig, width, height));
+        drawGrenadeTrail(ctx, canvasTrail, g.type);
+      }
+      const { x, y } = worldToCanvas(g.x, g.y, mapConfig, width, height);
+      drawGrenade(ctx, x, y, g.type, g.state);
+    }
+
     const ctColor = getCSSColor("--color-ct");
     const tColor = getCSSColor("--color-t");
     const ctDim = getCSSColor("--color-ct-dim");
@@ -70,7 +82,7 @@ export default function MapCanvas({
       drawPlayerDot(ctx, x, y, color);
       drawPlayerName(ctx, x, y, player.name, color);
     }
-  }, [players, mapConfig, mapImageUrl, imageLoaded, width, height, dpr]);
+  }, [players, grenades, mapConfig, mapImageUrl, imageLoaded, width, height, dpr]);
 
   useEffect(() => {
     const id = requestAnimationFrame(draw);

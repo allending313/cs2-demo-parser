@@ -2,6 +2,7 @@ import { useMemo, useEffect, useCallback } from "react";
 import type { MatchData } from "../types/match";
 import { usePlayback } from "../hooks/usePlayback";
 import { formatTime } from "../utils/format";
+import { getActiveGrenades } from "../utils/grenade";
 import MapCanvas from "./MapCanvas";
 import TeamPanel from "./TeamPanel";
 import RoundSelector from "./RoundSelector";
@@ -36,6 +37,11 @@ export default function MatchViewer({ match, radarImageUrl }: MatchViewerProps) 
       ? { ctTeam: match.teams.t, tTeam: match.teams.ct }
       : { ctTeam: match.teams.ct, tTeam: match.teams.t };
   }, [ctPlayers, match.teams]);
+
+  const activeGrenades = useMemo(
+    () => getActiveGrenades(round?.grenades ?? [], playback.currentTime),
+    [round?.grenades, playback.currentTime]
+  );
 
   // Show the score at the start of this round, not the end
   const ctScore = round ? round.endCTScore - (round.winner === "ct" ? 1 : 0) : 0;
@@ -98,6 +104,7 @@ export default function MatchViewer({ match, radarImageUrl }: MatchViewerProps) 
             mapConfig={match.mapConfig}
             mapImageUrl={radarImageUrl}
             players={playback.players}
+            grenades={activeGrenades}
             width={MAP_SIZE}
             height={MAP_SIZE}
           />

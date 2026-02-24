@@ -1,7 +1,35 @@
+import type { GrenadeType } from "../types/match";
+
 export const PLAYER_RADIUS = 6;
 export const FONT = "700 11px Stratum2, sans-serif";
 const VIEW_CONE_LENGTH = 10;
 const VIEW_CONE_ANGLE = Math.PI / 6;
+
+// TODO: replace these placeholders with actual icons/effects
+const GRENADE_RADIUS = 5;
+const GRENADE_FONT = "700 8px Stratum2, sans-serif";
+const EFFECT_RING_RADIUS = 10;
+
+const TRAIL_DASH = [2, 3];
+const TRAIL_WIDTH = 1;
+
+const GRENADE_COLORS: Record<GrenadeType, string> = {
+  smoke: "#cccccc",
+  flash: "#ffd700",
+  he: "#ff4444",
+  molotov: "#ff6600",
+  incendiary: "#ff6600",
+  decoy: "#888888",
+};
+
+const GRENADE_LABELS: Record<GrenadeType, string> = {
+  smoke: "S",
+  flash: "F",
+  he: "H",
+  molotov: "M",
+  incendiary: "M",
+  decoy: "D",
+};
 
 const MAX_NAME_LENGTH = 16;
 const NAME_PADDING_X = 4;
@@ -102,4 +130,62 @@ export function drawX(
   ctx.moveTo(x + size, y - size);
   ctx.lineTo(x - size, y + size);
   ctx.stroke();
+}
+
+export function drawGrenadeTrail(
+  ctx: CanvasRenderingContext2D,
+  points: { x: number; y: number }[],
+  type: GrenadeType,
+) {
+  if (points.length < 2) return;
+
+  const color = GRENADE_COLORS[type];
+
+  ctx.beginPath();
+  ctx.moveTo(points[0]!.x, points[0]!.y);
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i]!.x, points[i]!.y);
+  }
+
+  ctx.setLineDash(TRAIL_DASH);
+  ctx.lineWidth = TRAIL_WIDTH;
+  ctx.strokeStyle = color + "99";
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+export function drawGrenade(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  type: GrenadeType,
+  state: "inflight" | "effect",
+) {
+  const color = GRENADE_COLORS[type];
+  const label = GRENADE_LABELS[type];
+
+  // grenade effect area
+  if (state === "effect") {
+    ctx.beginPath();
+    ctx.arc(x, y, EFFECT_RING_RADIUS, 0, Math.PI * 2);
+    ctx.fillStyle = color + "30";
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = color + "60";
+    ctx.stroke();
+  }
+
+  ctx.beginPath();
+  ctx.arc(x, y, GRENADE_RADIUS, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = "rgba(0,0,0,0.5)";
+  ctx.stroke();
+
+  ctx.font = GRENADE_FONT;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "#000";
+  ctx.fillText(label, x, y);
 }
