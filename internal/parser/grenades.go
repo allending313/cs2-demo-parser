@@ -64,72 +64,49 @@ func (c *roundCollector) onGrenadeDestroy(e events.GrenadeProjectileDestroy, p d
 	if c.current == nil || e.Projectile == nil {
 		return
 	}
-
-	id := e.Projectile.Entity.ID()
-	ig, ok := c.inflight[id]
-	if !ok {
-		return
-	}
-
-	gs := p.GameState()
-	tick := gs.IngameTick()
 	pos := e.Projectile.Position()
-
-	ig.event.DetonateTick = tick
-	ig.event.DetonateTime = c.ticksToSeconds(tick, p)
-	ig.event.DetonateX = pos.X
-	ig.event.DetonateY = pos.Y
-
-	// Append the detonation point so the trajectory covers the full flight path
-	ig.trajectory = append(ig.trajectory, models.TrajectoryPoint{
-		TimeInRound: ig.event.DetonateTime,
-		X:           pos.X,
-		Y:           pos.Y,
-	})
-	ig.event.Trajectory = downsampleTrajectory(ig.trajectory, maxTrajectoryPoints)
-
-	c.grenades = append(c.grenades, ig.event)
-	delete(c.inflight, id)
+	c.finalizeGrenade(e.Projectile.Entity.ID(), pos.X, pos.Y, p)
 }
 
 func (c *roundCollector) onHeExplode(e events.HeExplode, p demoinfocs.Parser) {
 	if c.current == nil {
 		return
 	}
+	c.finalizeGrenade(e.GrenadeEntityID, e.Position.X, e.Position.Y, p)
+}
 
-	id := e.GrenadeEntityID
+// finalizeGrenade moves a grenade from inflight to the committed list,
+// setting its detonation position and time. Returns the index in c.grenades,
+// or -1 if the grenade was not in flight.
+func (c *roundCollector) finalizeGrenade(id int, x, y float64, p demoinfocs.Parser) int {
 	ig, ok := c.inflight[id]
 	if !ok {
-		return
+		return -1
 	}
 
-	gs := p.GameState()
-	tick := gs.IngameTick()
-
+	tick := p.GameState().IngameTick()
 	ig.event.DetonateTick = tick
 	ig.event.DetonateTime = c.ticksToSeconds(tick, p)
-	ig.event.DetonateX = e.Position.X
-	ig.event.DetonateY = e.Position.Y
+	ig.event.DetonateX = x
+	ig.event.DetonateY = y
 
 	ig.trajectory = append(ig.trajectory, models.TrajectoryPoint{
 		TimeInRound: ig.event.DetonateTime,
-		X:           e.Position.X,
-		Y:           e.Position.Y,
+		X:           x,
+		Y:           y,
 	})
 	ig.event.Trajectory = downsampleTrajectory(ig.trajectory, maxTrajectoryPoints)
 
+	idx := len(c.grenades)
 	c.grenades = append(c.grenades, ig.event)
 	delete(c.inflight, id)
+	return idx
 }
 
 func (c *roundCollector) onSmokeStart(e events.SmokeStart, p demoinfocs.Parser) {
 	if c.current == nil {
 		return
 	}
-
-	gs := p.GameState()
-	tick := gs.IngameTick()
-	detonateTime := c.ticksToSeconds(tick, p)
 
 	// Find the inflight smoke grenade closest to this position and finalize it.
 	// GrenadeProjectileDestroy fires too late for smokes (when the cloud clears),
@@ -151,31 +128,14 @@ func (c *roundCollector) onSmokeStart(e events.SmokeStart, p demoinfocs.Parser) 
 
 	key := quantizePos(e.Position.X, e.Position.Y)
 
-	if bestID >= 0 {
-		ig := c.inflight[bestID]
-		ig.event.DetonateTick = tick
-		ig.event.DetonateTime = detonateTime
-		ig.event.DetonateX = e.Position.X
-		ig.event.DetonateY = e.Position.Y
-		ig.event.EffectDuration = smokeDuration
-
-		ig.trajectory = append(ig.trajectory, models.TrajectoryPoint{
-			TimeInRound: detonateTime,
-			X:           e.Position.X,
-			Y:           e.Position.Y,
-		})
-		ig.event.Trajectory = downsampleTrajectory(ig.trajectory, maxTrajectoryPoints)
-
-		idx := len(c.grenades)
-		c.grenades = append(c.grenades, ig.event)
-		delete(c.inflight, bestID)
+	idx := c.finalizeGrenade(bestID, e.Position.X, e.Position.Y, p)
+	if idx < 0 {
+		// Fallback: smoke already finalized by GrenadeProjectileDestroy
+		idx = c.findGrenadeByTypeAndPos("smoke", e.Position.X, e.Position.Y)
+	}
+	if idx >= 0 {
+		c.grenades[idx].EffectDuration = smokeDuration
 		c.smokeByPos[key] = idx
-	} else {
-		idx := c.findGrenadeByTypeAndPos("smoke", e.Position.X, e.Position.Y)
-		if idx >= 0 {
-			c.grenades[idx].EffectDuration = smokeDuration
-			c.smokeByPos[key] = idx
-		}
 	}
 }
 
@@ -203,7 +163,6 @@ func (c *roundCollector) onInfernoStart(e events.InfernoStart, p demoinfocs.Pars
 		return
 	}
 
-	// Compute inferno center from its fires to match against the correct grenade
 	var cx, cy float64
 	fires := e.Inferno.Fires().Active().List()
 	if len(fires) > 0 {
@@ -252,7 +211,6 @@ func (c *roundCollector) onDecoyStart(e events.DecoyStart, p demoinfocs.Parser) 
 		return
 	}
 
-	// Patch the closest unmatched decoy by position
 	idx := c.findGrenadeByTypeAndPos("decoy", e.Position.X, e.Position.Y)
 	if idx >= 0 {
 		c.grenades[idx].EffectDuration = decoyDuration
@@ -398,10 +356,4 @@ func downsampleTrajectory(pts []models.TrajectoryPoint, maxPoints int) []models.
 
 	result = append(result, pts[len(pts)-1])
 	return result
-}
-
-// entityID adapts the various grenade event entity references into a
-// consistent integer ID.
-func entityID(e interface{ Entity() interface{ ID() int } }) int {
-	return e.Entity().ID()
 }
