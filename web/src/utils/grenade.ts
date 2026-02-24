@@ -10,6 +10,8 @@ export interface ActiveGrenade {
 }
 
 const EFFECT_TYPES: Set<GrenadeType> = new Set(["smoke", "molotov", "incendiary", "decoy"]);
+const BRIEF_EFFECT_TYPES: Set<GrenadeType> = new Set(["he", "flash"]);
+const BRIEF_EFFECT_DURATION = 0.5; // seconds
 
 export function getActiveGrenades(
   grenades: GrenadeEvent[],
@@ -31,6 +33,10 @@ export function getActiveGrenades(
 
     if (EFFECT_TYPES.has(g.type) && g.effectDuration > 0) {
       if (currentTime < g.detonateTime + g.effectDuration) {
+        active.push({ type: g.type, x: g.detonateX, y: g.detonateY, state: "effect", trail: [] });
+      }
+    } else if (BRIEF_EFFECT_TYPES.has(g.type)) {
+      if (currentTime < g.detonateTime + BRIEF_EFFECT_DURATION) {
         active.push({ type: g.type, x: g.detonateX, y: g.detonateY, state: "effect", trail: [] });
       }
     }

@@ -6,6 +6,7 @@ const VIEW_CONE_LENGTH = 10;
 const VIEW_CONE_ANGLE = Math.PI / 6;
 
 // TODO: replace these placeholders with actual icons/effects
+// TODO: increase molotov effect radius to distinguish more from incendiary
 const GRENADE_RADIUS = 5;
 const GRENADE_FONT = "700 8px Stratum2, sans-serif";
 const EFFECT_RING_RADIUS = 10;
