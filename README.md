@@ -4,6 +4,9 @@ Parse CS2 demo files and view them in a 2D playback viewer.
 
 Upload a `.dem` file and watch the match replay with player positions, movement, and round progression.
 
+![replay](https://github.com/user-attachments/assets/b3836847-04e7-4636-84d9-3b4a749585ce)
+
+
 ## Requirements
 
 - Go 1.25+
