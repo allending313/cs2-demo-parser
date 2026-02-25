@@ -7,6 +7,7 @@ import MapCanvas from "./MapCanvas";
 import TeamPanel from "./TeamPanel";
 import RoundSelector from "./RoundSelector";
 import PlaybackControls from "./PlaybackControls";
+import KillFeed from "./KillFeed";
 
 interface MatchViewerProps {
   match: MatchData;
@@ -97,7 +98,7 @@ export default function MatchViewer({ match, radarImageUrl }: MatchViewerProps) 
         <TeamPanel side="t" team={tTeam} score={tScore} players={tPlayers} />
 
         <div
-          className="shrink-0 overflow-hidden rounded shadow-lg"
+          className="relative shrink-0 overflow-hidden rounded shadow-lg"
           style={{ width: MAP_SIZE, height: MAP_SIZE }}
         >
           <MapCanvas
@@ -107,6 +108,11 @@ export default function MatchViewer({ match, radarImageUrl }: MatchViewerProps) 
             grenades={activeGrenades}
             width={MAP_SIZE}
             height={MAP_SIZE}
+          />
+          <KillFeed
+            kills={round?.kills ?? []}
+            currentTime={playback.currentTime}
+            players={playback.players}
           />
         </div>
 
