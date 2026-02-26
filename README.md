@@ -8,14 +8,9 @@ Upload a `.dem` file and watch the match replay with interpolated player movemen
 
 ## Tech Stack
 
-- **Backend:** Go
+- **Backend:** Go 1.25+
 - **Frontend:** React + TypeScript, Vite, TailwindCSS
 - **Rendering:** HTML5 Canvas
-
-## Requirements
-
-- Go 1.25+
-- Node.js 18+
 
 ## Local Setup
 
