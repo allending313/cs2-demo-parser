@@ -1,12 +1,16 @@
 # cs2-demo-parser
 
-Parse CS2 demo files and view them in a 2D playback viewer.
+Parse CS2 demo files and view them in an interactive 2D playback viewer.
 
-Upload a `.dem` file and watch the match replay with player positions, movement, and round progression.
+Upload a `.dem` file and watch the match replay with interpolated player movement, view cones, grenade trajectories and effects, a live killfeed, and team panels with health status.
 
 ![r4](https://github.com/user-attachments/assets/7a521d28-cb0c-434f-8350-86d6d0776ebb)
 
+## Tech Stack
 
+- **Backend:** Go
+- **Frontend:** React + TypeScript, Vite, TailwindCSS
+- **Rendering:** HTML5 Canvas
 
 ## Requirements
 
