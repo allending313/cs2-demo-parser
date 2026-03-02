@@ -1,5 +1,8 @@
+export const ROUND_TIME = 115;
+
 export function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  const clamped = Math.max(0, seconds);
+  const m = Math.floor(clamped / 60);
+  const s = Math.floor(clamped % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
 }

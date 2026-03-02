@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react";
-import { formatTime } from "../utils/format";
+import { formatTime, ROUND_TIME } from "../utils/format";
 
 interface PlaybackControlsProps {
   isPlaying: boolean;
@@ -77,7 +77,7 @@ export default function PlaybackControls({
       </div>
 
       <span className="min-w-10.5 text-right text-[13px] font-medium tabular-nums text-text-muted">
-        {formatTime(currentTime)}
+        {formatTime(ROUND_TIME - currentTime)}
       </span>
     </div>
   );

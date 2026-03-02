@@ -1,7 +1,7 @@
 import { useMemo, useEffect, useCallback } from "react";
 import type { MatchData } from "../types/match";
 import { usePlayback } from "../hooks/usePlayback";
-import { formatTime } from "../utils/format";
+import { formatTime, ROUND_TIME } from "../utils/format";
 import { getActiveGrenades } from "../utils/grenade";
 import MapCanvas from "./MapCanvas";
 import TeamPanel from "./TeamPanel";
@@ -90,7 +90,7 @@ export default function MatchViewer({ match, radarImageUrl }: MatchViewerProps) 
     <div className="flex h-screen flex-col bg-bg text-text-primary">
       {/* Timer */}
       <div className="mx-auto mt-3 w-20 rounded-md border border-border bg-surface py-3 text-center text-base font-semibold tabular-nums">
-        {formatTime(playback.currentTime)}
+        {formatTime(ROUND_TIME - playback.currentTime)}
       </div>
 
       {/* Main area */}
