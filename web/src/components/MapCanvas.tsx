@@ -57,10 +57,10 @@ export default function MapCanvas({
     for (const g of grenades) {
       if (g.trail.length >= 2) {
         const canvasTrail = g.trail.map((p) => worldToCanvas(p.x, p.y, mapConfig, width, height));
-        drawGrenadeTrail(ctx, canvasTrail, g.type);
+        drawGrenadeTrail(ctx, canvasTrail, g.type, g.team);
       }
       const { x, y } = worldToCanvas(g.x, g.y, mapConfig, width, height);
-      drawGrenade(ctx, x, y, g.type, g.state);
+      drawGrenade(ctx, x, y, g.type, g.state, g.team);
     }
 
     const ctColor = getCSSColor("--color-ct");

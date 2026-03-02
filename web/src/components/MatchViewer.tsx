@@ -39,9 +39,15 @@ export default function MatchViewer({ match, radarImageUrl }: MatchViewerProps) 
       : { ctTeam: match.teams.ct, tTeam: match.teams.t };
   }, [ctPlayers, match.teams]);
 
+  const teamBySteamId = useMemo(() => {
+    const map = new Map<string, "ct" | "t">();
+    for (const p of playback.players) map.set(p.steamId, p.team);
+    return map;
+  }, [playback.players]);
+
   const activeGrenades = useMemo(
-    () => getActiveGrenades(round?.grenades ?? [], playback.currentTime),
-    [round?.grenades, playback.currentTime]
+    () => getActiveGrenades(round?.grenades ?? [], playback.currentTime, teamBySteamId),
+    [round?.grenades, playback.currentTime, teamBySteamId]
   );
 
   // Show the score at the start of this round, not the end

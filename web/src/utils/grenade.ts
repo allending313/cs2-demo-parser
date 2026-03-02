@@ -1,4 +1,4 @@
-import type { GrenadeEvent, GrenadeType, TrajectoryPoint } from "../types/match";
+import type { GrenadeEvent, GrenadeType, Team, TrajectoryPoint } from "../types/match";
 import { lerp } from "./interpolation";
 
 export interface ActiveGrenade {
@@ -7,6 +7,7 @@ export interface ActiveGrenade {
   y: number;
   state: "inflight" | "effect";
   trail: TrajectoryPoint[];
+  team: Team | null;
 }
 
 const EFFECT_TYPES: Set<GrenadeType> = new Set(["smoke", "molotov", "incendiary", "decoy"]);
@@ -16,28 +17,30 @@ const BRIEF_EFFECT_DURATION = 0.5; // seconds
 export function getActiveGrenades(
   grenades: GrenadeEvent[],
   currentTime: number,
+  teamBySteamId: Map<string, Team>,
 ): ActiveGrenade[] {
   const active: ActiveGrenade[] = [];
 
   for (const g of grenades) {
     if (currentTime < g.throwTime) continue;
 
+    const team = teamBySteamId.get(g.thrower) ?? null;
     const hasDetonation = g.detonateTime > 0;
 
     if (!hasDetonation || currentTime < g.detonateTime) {
       const pos = interpolateTrajectory(g.trajectory, currentTime);
       const trail = getTrailPoints(g.trajectory, currentTime);
-      active.push({ type: g.type, x: pos.x, y: pos.y, state: "inflight", trail });
+      active.push({ type: g.type, x: pos.x, y: pos.y, state: "inflight", trail, team });
       continue;
     }
 
     if (EFFECT_TYPES.has(g.type) && g.effectDuration > 0) {
       if (currentTime < g.detonateTime + g.effectDuration) {
-        active.push({ type: g.type, x: g.detonateX, y: g.detonateY, state: "effect", trail: [] });
+        active.push({ type: g.type, x: g.detonateX, y: g.detonateY, state: "effect", trail: [], team });
       }
     } else if (BRIEF_EFFECT_TYPES.has(g.type)) {
       if (currentTime < g.detonateTime + BRIEF_EFFECT_DURATION) {
-        active.push({ type: g.type, x: g.detonateX, y: g.detonateY, state: "effect", trail: [] });
+        active.push({ type: g.type, x: g.detonateX, y: g.detonateY, state: "effect", trail: [], team });
       }
     }
   }

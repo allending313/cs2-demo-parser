@@ -1,4 +1,4 @@
-import type { GrenadeType } from "../types/match";
+import type { GrenadeType, Team } from "../types/match";
 
 export const PLAYER_RADIUS = 6;
 export const FONT = "700 11px Stratum2, sans-serif";
@@ -23,6 +23,9 @@ const GRENADE_COLORS: Record<GrenadeType, string> = {
   incendiary: "#ff6600",
   decoy: "#888888",
 };
+
+const TEAM_SMOKE_COLORS: Record<Team, string> = { ct: "#a2c6ff", t: "#ffdf93" };
+const TEAM_FIRE_COLORS: Record<Team, string> = { ct: "#6ea8ff", t: "#ff8c3a" };
 
 const GRENADE_LABELS: Record<GrenadeType, string> = {
   smoke: "S",
@@ -134,14 +137,23 @@ export function drawX(
   ctx.stroke();
 }
 
+function getGrenadeColor(type: GrenadeType, team: Team | null): string {
+  if (team) {
+    if (type === "smoke") return TEAM_SMOKE_COLORS[team];
+    if (type === "molotov" || type === "incendiary") return TEAM_FIRE_COLORS[team];
+  }
+  return GRENADE_COLORS[type];
+}
+
 export function drawGrenadeTrail(
   ctx: CanvasRenderingContext2D,
   points: { x: number; y: number }[],
   type: GrenadeType,
+  team: Team | null,
 ) {
   if (points.length < 2) return;
 
-  const color = GRENADE_COLORS[type];
+  const color = getGrenadeColor(type, team);
 
   ctx.beginPath();
   ctx.moveTo(points[0]!.x, points[0]!.y);
@@ -162,8 +174,9 @@ export function drawGrenade(
   y: number,
   type: GrenadeType,
   state: "inflight" | "effect",
+  team: Team | null,
 ) {
-  const color = GRENADE_COLORS[type];
+  const color = getGrenadeColor(type, team);
   const label = GRENADE_LABELS[type];
 
   if (state === "effect") {
