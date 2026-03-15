@@ -43,7 +43,7 @@ const NAME_BG_RADIUS = 3;
 const NAME_BG_OPACITY = "40";
 const NAME_OFFSET_Y = PLAYER_RADIUS + 6;
 
-function truncateName(name: string): string {
+export function truncateName(name: string): string {
   if (name.length <= MAX_NAME_LENGTH) return name;
   return name.slice(0, MAX_NAME_LENGTH - 1) + "\u2026";
 }
@@ -137,7 +137,7 @@ export function drawX(
   ctx.stroke();
 }
 
-function getGrenadeColor(type: GrenadeType, team: Team | null): string {
+export function getGrenadeColor(type: GrenadeType, team: Team | null): string {
   if (team) {
     if (type === "smoke") return TEAM_SMOKE_COLORS[team];
     if (type === "molotov" || type === "incendiary") return TEAM_FIRE_COLORS[team];
