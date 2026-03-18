@@ -103,7 +103,7 @@ export default function PlaybackControls({
         {killMarkers.map((marker, i) => (
           <button
             key={i}
-            className={`absolute top-0 h-full w-1.5 -translate-x-1/2 rounded-sm ${marker.colorClass} opacity-60 transition-opacity hover:opacity-100`}
+            className={`absolute top-0 h-full w-1.5 -translate-x-1/2 rounded-sm ${marker.colorClass} transition-opacity hover:opacity-70`}
             style={{ left: `${marker.pct}%` }}
             onClick={(e) => {
               e.stopPropagation();
