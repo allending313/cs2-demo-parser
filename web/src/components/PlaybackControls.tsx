@@ -1,11 +1,14 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { formatTime, ROUND_TIME } from "../utils/format";
+import type { KillEvent, PlayerState } from "../types/match";
 
 interface PlaybackControlsProps {
   isPlaying: boolean;
   speed: number;
   currentTime: number;
   duration: number;
+  kills: KillEvent[];
+  players: PlayerState[];
   onTogglePlay: () => void;
   onSetSpeed: (speed: number) => void;
   onSeek: (time: number) => void;
@@ -18,11 +21,33 @@ export default function PlaybackControls({
   speed,
   currentTime,
   duration,
+  kills,
+  players,
   onTogglePlay,
   onSetSpeed,
   onSeek,
 }: PlaybackControlsProps) {
   const trackRef = useRef<HTMLDivElement>(null);
+
+  const killMarkers = useMemo(() => {
+    const teamBySteamId = new Map<string, "ct" | "t">();
+    for (const p of players) teamBySteamId.set(p.steamId, p.team);
+
+    return kills.map((kill) => {
+      const attackerTeam = teamBySteamId.get(kill.attacker);
+      const victimTeam = teamBySteamId.get(kill.victim);
+      const isTeamkillOrSuicide =
+        !attackerTeam || kill.attacker === kill.victim || attackerTeam === victimTeam;
+      const colorClass = isTeamkillOrSuicide
+        ? "bg-text-muted"
+        : attackerTeam === "ct"
+          ? "bg-ct"
+          : "bg-t";
+      const pct = duration > 0 ? (kill.timeInRound / duration) * 100 : 0;
+
+      return { pct, colorClass, timeInRound: kill.timeInRound };
+    });
+  }, [kills, players, duration]);
 
   const cycleSpeed = useCallback(() => {
     const idx = SPEEDS.indexOf(speed);
@@ -63,13 +88,32 @@ export default function PlaybackControls({
 
       <div
         ref={trackRef}
-        className="relative h-1 flex-1 cursor-pointer rounded-sm bg-surface-hover"
+        className="relative h-5 flex-1 cursor-pointer rounded-sm"
         onClick={handleTrackClick}
       >
-        <div
-          className="pointer-events-none h-full rounded-sm bg-ct"
-          style={{ width: `${progress}%` }}
-        />
+        {/* Track background */}
+        <div className="absolute top-1/2 h-1 w-full -translate-y-1/2 rounded-sm bg-surface-hover">
+          <div
+            className="pointer-events-none h-full rounded-sm bg-ct"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+
+        {/* Kill markers */}
+        {killMarkers.map((marker, i) => (
+          <button
+            key={i}
+            className={`absolute top-0 h-full w-1.5 -translate-x-1/2 rounded-sm ${marker.colorClass} opacity-60 transition-opacity hover:opacity-100`}
+            style={{ left: `${marker.pct}%` }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSeek(Math.max(0, marker.timeInRound - 1));
+            }}
+            title={`Kill at ${formatTime(ROUND_TIME - marker.timeInRound)}`}
+          />
+        ))}
+
+        {/* Playhead */}
         <div
           className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-ct shadow-md"
           style={{ left: `${progress}%`, transform: `translate(-50%, -50%)` }}

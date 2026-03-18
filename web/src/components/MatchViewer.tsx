@@ -137,6 +137,8 @@ export default function MatchViewer({ match, radarImageUrl }: MatchViewerProps) 
           speed={playback.speed}
           currentTime={playback.currentTime}
           duration={playback.roundDuration}
+          kills={round?.kills ?? []}
+          players={playback.players}
           onTogglePlay={controls.togglePlay}
           onSetSpeed={controls.setSpeed}
           onSeek={controls.seek}
