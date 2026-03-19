@@ -201,12 +201,19 @@ func (c *roundCollector) onFrame(p demoinfocs.Parser) {
 			Yaw:        float64(player.ViewDirectionX()),
 			HP:         player.Health(),
 			Armor:      player.Armor(),
+			HasHelmet:  player.HasHelmet(),
 			IsAlive:    player.IsAlive(),
 			HasDefuser: player.HasDefuseKit(),
 		}
 
 		if w := player.ActiveWeapon(); w != nil {
 			ps.Weapon = w.String()
+		}
+
+		for _, w := range player.Weapons() {
+			if w.Type >= common.EqDecoy && w.Type <= common.EqHE {
+				ps.Grenades = append(ps.Grenades, w.String())
+			}
 		}
 
 		remaining := player.FlashDurationTimeRemaining().Seconds()

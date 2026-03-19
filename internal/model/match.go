@@ -51,19 +51,21 @@ type BombState struct {
 }
 
 type PlayerState struct {
-	SteamID    uint64  `json:"steamId"`
-	Name       string  `json:"name"`
-	Team       string  `json:"team"`
-	X          float64 `json:"x"`
-	Y          float64 `json:"y"`
-	Z          float64 `json:"z"`
-	Yaw        float64 `json:"yaw"`
-	HP         int     `json:"hp"`
-	Armor      int     `json:"armor"`
-	IsAlive    bool    `json:"isAlive"`
-	Weapon     string  `json:"weapon"`
-	HasDefuser bool    `json:"hasDefuser"`
-	FlashAlpha float64 `json:"flashAlpha"`
+	SteamID    uint64   `json:"steamId"`
+	Name       string   `json:"name"`
+	Team       string   `json:"team"`
+	X          float64  `json:"x"`
+	Y          float64  `json:"y"`
+	Z          float64  `json:"z"`
+	Yaw        float64  `json:"yaw"`
+	HP         int      `json:"hp"`
+	Armor      int      `json:"armor"`
+	HasHelmet  bool     `json:"hasHelmet"`
+	IsAlive    bool     `json:"isAlive"`
+	Weapon     string   `json:"weapon"`
+	Grenades   []string `json:"grenades"`
+	HasDefuser bool     `json:"hasDefuser"`
+	FlashAlpha float64  `json:"flashAlpha"`
 }
 
 type KillEvent struct {

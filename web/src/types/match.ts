@@ -22,8 +22,10 @@ export interface PlayerState {
   yaw: number;
   hp: number;
   armor: number;
+  hasHelmet: boolean;
   isAlive: boolean;
   weapon: string;
+  grenades: string[];
   hasDefuser: boolean;
   flashAlpha: number;
 }
