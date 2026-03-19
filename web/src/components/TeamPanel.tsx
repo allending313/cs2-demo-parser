@@ -38,15 +38,13 @@ export default function TeamPanel({ side, team, score, players }: TeamPanelProps
                   {state.isAlive ? `${state.hp} HP` : "DEAD"}
                 </span>
               </div>
-              {state.isAlive && (
-                <div className="mt-0.5 flex items-center gap-2 text-[11px] text-text-muted">
-                  <span className="truncate">{state.weapon}</span>
-                  {grenadeLabels.length > 0 && (
-                    <span className="shrink-0">{grenadeLabels.join(" ")}</span>
-                  )}
-                  {armor && <span className="shrink-0">{armor}</span>}
-                </div>
-              )}
+              <div className={`mt-0.5 flex items-center gap-2 text-[11px] text-text-muted ${dead ? "invisible" : ""}`}>
+                <span className="truncate">{state.weapon || "\u00A0"}</span>
+                {grenadeLabels.length > 0 && (
+                  <span className="shrink-0">{grenadeLabels.join(" ")}</span>
+                )}
+                {armor && <span className="shrink-0">{armor}</span>}
+              </div>
             </div>
           );
         })}
