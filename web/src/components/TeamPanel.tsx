@@ -44,6 +44,7 @@ export default function TeamPanel({ side, team, score, players }: TeamPanelProps
                   <span className="shrink-0">{grenadeLabels.join(" ")}</span>
                 )}
                 {armor && <span className="shrink-0">{armor}</span>}
+                <span className="ml-auto shrink-0 tabular-nums">${state.money ?? 0}</span>
               </div>
             </div>
           );

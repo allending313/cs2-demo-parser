@@ -27,6 +27,7 @@ export interface PlayerState {
   weapon: string;
   grenades: string[];
   hasDefuser: boolean;
+  money: number;
   flashAlpha: number;
 }
 
