@@ -65,6 +65,7 @@ type PlayerState struct {
 	Weapon     string   `json:"weapon"`
 	Grenades   []string `json:"grenades"`
 	HasDefuser bool     `json:"hasDefuser"`
+	Money      int      `json:"money"`
 	FlashAlpha float64  `json:"flashAlpha"`
 }
 

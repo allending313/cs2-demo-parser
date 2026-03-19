@@ -204,6 +204,7 @@ func (c *roundCollector) onFrame(p demoinfocs.Parser) {
 			HasHelmet:  player.HasHelmet(),
 			IsAlive:    player.IsAlive(),
 			HasDefuser: player.HasDefuseKit(),
+			Money:      player.Money(),
 		}
 
 		if w := player.ActiveWeapon(); w != nil {
